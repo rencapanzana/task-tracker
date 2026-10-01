@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Task Tracker</title>
+<meta name="theme-color" content="#F6F2FA">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#F6F2FA; --ink:#17151C; --muted:#8B8794; --faint:#C9C4D2; --line:rgba(23,21,28,.08);
+  --glass:rgba(255,255,255,.72); --glass-strong:rgba(255,255,255,.9); --edge:rgba(255,255,255,.95);
+  --orange:#F97316; --orange-2:#FFA53C; --orange-glow:rgba(249,115,22,.35);
+  --shadow:0 12px 32px rgba(110,80,150,.10); --r:24px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:var(--ink);min-height:100dvh;
+  background:
+    radial-gradient(60vmax 50vmax at 100% 0%,#E9D8FF 0%,transparent 60%),
+    radial-gradient(55vmax 45vmax at 0% 35%,#FFE9D2 0%,transparent 60%),
+    radial-gradient(50vmax 40vmax at 80% 100%,#E3E4FF 0%,transparent 60%),
+    var(--bg);
+  background-attachment:fixed;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+
+.wrap{max-width:480px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) 16px 130px}
+.glass{background:var(--glass);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:1px solid var(--edge);box-shadow:var(--shadow);border-radius:var(--r)}
+.round-btn{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;flex:none}
+.round-btn svg{width:22px;height:22px}
+
+/* header */
+.top{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.avatar{width:54px;height:54px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;font-size:20px;color:#fff;
+  background:linear-gradient(135deg,#3B4CF0,#1E1B6B);box-shadow:0 0 0 3px #fff,0 0 0 5px var(--orange-2)}
+.hello small{display:block;color:var(--muted);font-size:13px}
+.hello b{font-size:20px;font-weight:700}
+.top .round-btn{margin-left:auto}
+.title-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.title-bar h1{font-size:20px;font-weight:700}
+
+/* search + chips */
+.search{display:flex;align-items:center;gap:10px;padding:0 18px;height:54px;border-radius:999px;margin-bottom:16px}
+.search svg{width:20px;height:20px;color:var(--muted);flex:none}
+.search input{border:0;background:none;outline:none;flex:1;font-size:15px;min-width:0}
+.search input::placeholder{color:var(--muted)}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 22px;padding:2px 16px 10px}
+.chips::-webkit-scrollbar,.hscroll::-webkit-scrollbar{display:none}
+.chip{flex:none;height:42px;padding:0 16px;border-radius:14px;font-weight:600;font-size:14px;color:var(--muted);
+  background:var(--glass);border:1px solid var(--edge);display:flex;align-items:center;gap:6px}
+.chip.on{color:#fff;border-color:transparent;background:linear-gradient(180deg,var(--orange-2),var(--orange));box-shadow:0 8px 18px var(--orange-glow)}
+.chip .n{font-size:12px;opacity:.75}
+
+/* section heads */
+.sec{display:flex;align-items:center;justify-content:space-between;margin:4px 0 12px}
+.sec h2{font-size:19px;font-weight:700}
+.sec .link{color:var(--muted);font-weight:500;font-size:14px}
+.go{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:#fff;
+  background:linear-gradient(180deg,var(--orange-2),var(--orange));box-shadow:0 6px 14px var(--orange-glow)}
+.go svg{width:16px;height:16px}
+
+/* client cards */
+.hscroll{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 26px;padding:2px 16px 14px;scroll-snap-type:x mandatory}
+.ccard{flex:none;width:250px;padding:16px;scroll-snap-align:start;text-align:left}
+.ccard.full{width:100%;margin-bottom:12px}
+.stripe-title{display:flex;gap:10px;align-items:flex-start;font-weight:700;font-size:17px;line-height:1.2;min-height:42px}
+.stripe-title::before{content:"";width:4px;align-self:stretch;border-radius:4px;background:var(--c,#C4B5FD);flex:none;box-shadow:0 2px 8px var(--c)}
+.divider{height:1px;background:var(--line);margin:12px 0}
+.meta{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:13px}
+.meta span{display:flex;align-items:center;gap:6px}
+.meta svg{width:14px;height:14px;color:var(--ink)}
+.health{font-size:12px;font-weight:600;color:var(--ink)}
+
+/* tasks */
+.group{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:18px 4px 10px}
+.group.late{color:#E11D48}
+.task{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;margin-bottom:10px;width:100%;text-align:left}
+.task .body{flex:1;min-width:0}
+.task .stripe-title{font-size:16px;min-height:0}
+.task .meta{flex-direction:row;flex-wrap:wrap;gap:6px 12px;margin-top:8px;padding-left:14px}
+.check{width:28px;height:28px;border-radius:50%;border:2px solid var(--faint);flex:none;display:grid;place-items:center;color:transparent;background:#fff;margin-top:-2px}
+.check svg{width:14px;height:14px}
+.check.done{background:linear-gradient(180deg,var(--orange-2),var(--orange));border-color:transparent;color:#fff}
+.task.is-done .stripe-title{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
+.pill{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11.5px;font-weight:600;background:rgba(23,21,28,.05);color:var(--ink)}
+.pill.s-ip{background:#FFEBD6;color:#B45309}.pill.s-w{background:#EDE7FE;color:#6D28D9}.pill.s-b{background:#FFE1E7;color:#BE123C}.pill.s-d{background:#DCF7E9;color:#047857}
+.empty{text-align:center;color:var(--muted);padding:34px 16px;font-size:14px}
+
+/* day strip */
+.days{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:4px 16px 18px}
+.days::-webkit-scrollbar{display:none}
+.day{flex:none;width:62px;height:86px;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  background:rgba(255,255,255,.55);border:1px solid var(--edge);color:var(--faint);font-weight:600;position:relative}
+.day small{font-size:13px;text-transform:uppercase}
+.day small::after{content:"";display:block;width:34px;height:1.5px;background:currentColor;opacity:.5;margin:6px auto 0}
+.day b{font-size:22px;font-weight:600}
+.day.has::before{content:"";position:absolute;bottom:9px;width:5px;height:5px;border-radius:50%;background:var(--orange)}
+.day.today{color:var(--muted)}
+.day.on{color:#fff;border-color:transparent;background:linear-gradient(180deg,var(--orange-2),var(--orange));box-shadow:0 10px 22px var(--orange-glow)}
+.day.on::before{background:#fff}
+.panel{padding:22px 18px 6px;margin-bottom:18px}
+.panel h3{font-size:24px;font-weight:800;line-height:1.15;letter-spacing:-.01em}
+.panel p{color:var(--muted);font-size:14px;margin:6px 0 16px}
+
+/* timeline */
+.tl{display:grid;grid-template-columns:62px 1fr;gap:0 8px}
+.tl .t{color:var(--muted);font-size:14px;padding-top:16px}
+.tl .task{margin-bottom:12px}
+
+/* bottom nav */
+.nav{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(480px,100%);height:calc(84px + env(safe-area-inset-bottom));
+  padding:0 18px env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(5,1fr);align-items:center;justify-items:center;
+  background:rgba(255,255,255,.82);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:30px 30px 0 0;
+  box-shadow:0 -10px 30px rgba(110,80,150,.10);z-index:10}
+.nav button{width:48px;height:48px;display:grid;place-items:center;color:var(--faint)}
+.nav button svg{width:26px;height:26px}
+.nav button.on{color:var(--orange)}
+.nav .fab{width:72px;height:72px;border-radius:50%;margin-top:-34px;color:#fff;background:linear-gradient(180deg,var(--orange-2),var(--orange));
+  box-shadow:0 0 0 8px rgba(255,255,255,.9),0 14px 28px var(--orange-glow)}
+.nav .fab svg{width:32px;height:32px}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(30,20,45,.28);backdrop-filter:blur(3px);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:min(480px,100%);max-height:92dvh;overflow:auto;background:var(--glass-strong);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
+  border-radius:30px 30px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -20px 50px rgba(30,20,45,.18);animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+.grab{width:44px;height:5px;border-radius:5px;background:var(--faint);margin:0 auto 14px}
+.sheet h2{font-size:20px;margin-bottom:14px}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form label{display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.form label.wide{grid-column:1/-1}
+.form input,.form select,.form textarea{width:100%;border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px 14px;font-size:15px;color:var(--ink);font-weight:500;outline:none}
+.form input:focus,.form select:focus,.form textarea:focus{border-color:var(--orange-2);box-shadow:0 0 0 3px rgba(255,165,60,.2)}
+.form textarea{min-height:90px;resize:vertical}
+.actions{grid-column:1/-1;display:flex;gap:10px;margin-top:6px}
+.btn{height:52px;border-radius:16px;padding:0 20px;font-weight:700;font-size:15px;background:rgba(23,21,28,.06)}
+.btn.primary{flex:1;color:#fff;background:linear-gradient(180deg,var(--orange-2),var(--orange));box-shadow:0 10px 22px var(--orange-glow)}
+.btn.danger{color:#BE123C;background:#FFE7EC}
+.btn:disabled{opacity:.6}
+
+/* login */
+.login{min-height:100dvh;display:grid;place-items:center;padding:16px}
+.login .glass{width:min(400px,100%);padding:28px 22px}
+.login h1{font-size:28px;font-weight:800;letter-spacing:-.02em}
+.login p{color:var(--muted);margin:6px 0 20px}
+.login .form{grid-template-columns:1fr}
+
+.toast{position:fixed;left:50%;top:16px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:14px;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<main class="login" id="login" hidden>
+  <form class="glass" id="loginForm">
+    <h1>Task Tracker</h1>
+    <p>Sign in to see your tasks.</p>
+    <div class="form">
+      <label>Email<input name="email" type="email" autocomplete="email" required></label>
+      <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+      <div class="actions"><button class="btn primary">Sign in</button></div>
+    </div>
+  </form>
+</main>
+
+<div id="app" hidden>
+  <div class="wrap">
+
+    <!-- Home -->
+    <section id="v-home">
+      <header class="top">
+        <div class="avatar" id="avatar"></div>
+        <div class="hello"><small id="greet"></small><b id="who"></b></div>
+        <button class="round-btn glass" data-act="account" aria-label="Account"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></button>
+      </header>
+      <label class="search glass">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input id="q" type="search" placeholder="Search tasks, clients, notes..." aria-label="Search">
+      </label>
+      <div class="chips" id="chips" role="tablist"></div>
+
+      <div class="sec"><h2>Clients</h2><button class="go" data-view="clients" aria-label="All clients"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></button></div>
+      <div class="hscroll" id="clientStrip"></div>
+
+      <div class="sec"><h2 id="listTitle">Tasks</h2><button class="link" data-view="schedule">View schedule</button></div>
+      <div id="taskList"></div>
+    </section>
+
+    <!-- Schedule -->
+    <section id="v-schedule" hidden>
+      <div class="title-bar"><h1>Schedule</h1><button class="link sec" data-act="today" style="margin:0"><span class="link">Today</span></button></div>
+      <div class="panel glass">
+        <h3 id="dayTitle"></h3>
+        <p id="daySub"></p>
+        <div class="days" id="days"></div>
+      </div>
+      <div class="tl" id="timeline"></div>
+    </section>
+
+    <!-- Clients -->
+    <section id="v-clients" hidden>
+      <div class="title-bar"><h1>Clients</h1><button class="chip on" data-act="newClient">+ New client</button></div>
+      <div id="clientList"></div>
+    </section>
+  </div>
+
+  <nav class="nav">
+    <button data-view="home" aria-label="Home"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5 3 8v9.5A3.5 3.5 0 0 0 6.5 21h11a3.5 3.5 0 0 0 3.5-3.5V8zm-3 12.2a.9.9 0 0 1 1.2-.3 3.6 3.6 0 0 0 3.6 0 .9.9 0 1 1 .9 1.5 5.4 5.4 0 0 1-5.4 0 .9.9 0 0 1-.3-1.2z"/></svg></button>
+    <button data-view="schedule" aria-label="Schedule"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 7a5 5 0 1 0 5 5"/><path d="M12 11a1 1 0 1 0 1 1"/></svg></button>
+    <button class="fab" data-act="newTask" aria-label="New task"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button data-view="clients" aria-label="Clients"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7.5" r="4"/><path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5z"/></svg></button>
+    <button data-act="account" aria-label="Account"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a6 6 0 0 0-6 6v4.5L4.3 16a1 1 0 0 0 .9 1.5h13.6a1 1 0 0 0 .9-1.5L18 12.5V8a6 6 0 0 0-6-6zm-2.5 17h5a2.5 2.5 0 0 1-5 0z"/></svg></button>
+  </nav>
+</div>
+
+<div id="sheetRoot"></div>
+
+<script>
+// Public by design: the anon key only works within the RLS policies in schema.sql.
+const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const STATUSES = ['Not Started', 'In Progress', 'Waiting', 'Blocked', 'Done'];
+const STATUS_CLASS = { 'In Progress': 's-ip', Waiting: 's-w', Blocked: 's-b', Done: 's-d' };
+const FILTERS = [['open', 'Open'], ['In Progress', 'In Progress'], ['Waiting', 'Waiting'], ['Blocked', 'Blocked'], ['Done', 'Done'], ['all', 'All']];
+const COLORS = ['#F0386B', '#F5C518', '#F97316', '#8B5CF6', '#10B981', '#3B82F6'];
+const ICON = {
+  clock: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 10.6V6h-2v7.4l4.3 2.6 1-1.7z"/></svg>',
+  tag: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10a2 2 0 0 1 2 2v16l-7-4-7 4V5a2 2 0 0 1 2-2z"/></svg>',
+  tick: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+};
+
+const TASK_FIELDS = [
+  ['title', 'Task', 'text', null, 'wide'],
+  ['client_id', 'Client', 'client'],
+  ['status', 'Status', 'select', STATUSES],
+  ['due_date', 'Due date', 'date'],
+  ['due_time', 'Time', 'time'],
+  ['notes', 'Notes', 'textarea', null, 'wide'],
+];
+const CLIENT_FIELDS = [
+  ['name', 'Client', 'text', null, 'wide'],
+  ['health', 'Health', 'select', ['🟢 On Track', '🟡 Needs Attention', '🔴 At Risk']],
+  ['priority', 'Priority', 'select', ['High', 'Medium', 'Low']],
+  ['main_contact', 'Main contact', 'text'],
+  ['channel', 'Channel', 'select', ['WhatsApp', 'Email', 'Slack', 'Phone']],
+  ['current_focus', 'Current focus', 'textarea', null, 'wide'],
+  ['next_action', 'Next action', 'text', null, 'wide'],
+  ['next_action_due', 'Next action due', 'date'],
+  ['next_action_owner', 'Owner', 'select', ['Me', 'Tony', 'Client', 'Team']],
+  ['waiting_on', 'Waiting on', 'select', ['Nothing', 'Client', 'Tony', 'Internal', 'Me']],
+  ['main_blocker', 'Main blocker', 'text'],
+  ['last_touchpoint', 'Last touchpoint', 'date'],
+  ['next_touchpoint', 'Next touchpoint', 'date'],
+  ['service_scope', 'Service / scope', 'text'],
+  ['timezone', 'Timezone', 'text'],
+  ['important_links', 'Important links', 'url', null, 'wide'],
+  ['notes', 'Notes', 'textarea', null, 'wide'],
+];
+
+const S = { clients: [], tasks: [], filter: 'open', q: '', day: ymd(new Date()), view: 'home', user: null };
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function ymd(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function parseDay(s) { const [y, m, d] = s.split('-'); return new Date(y, m - 1, d); }
+function addDays(s, n) { const d = parseDay(s); d.setDate(d.getDate() + n); return ymd(d); }
+function fmtDay(s) {
+  const t = ymd(new Date());
+  if (s === t) return 'Today';
+  if (s === addDays(t, 1)) return 'Tomorrow';
+  if (s === addDays(t, -1)) return 'Yesterday';
+  return parseDay(s).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+}
+function fmtTime(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  return `${h % 12 || 12}${m ? ':' + String(m).padStart(2, '0') : ''} ${h < 12 ? 'am' : 'pm'}`;
+}
+const clientOf = id => S.clients.find(c => c.id === id);
+const colorOf = id => { const i = S.clients.findIndex(c => c.id === id); return i < 0 ? '#C4B5FD' : COLORS[i % COLORS.length]; };
+const isOpen = t => t.status !== 'Done';
+
+function toast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast'; el.role = 'status'; el.textContent = msg;
+  document.body.append(el); setTimeout(() => el.remove(), 3500);
+}
+
+// ---------- data ----------
+async function load() {
+  // ponytail: plain select caps at Supabase's 1000-row default; paginate once tasks pass that.
+  const [c, t] = await Promise.all([
+    sb.from('clients').select('*').order('name'),
+    sb.from('tasks').select('*').order('due_date', { nullsFirst: false }).order('due_time', { nullsFirst: true }),
+  ]);
+  if (c.error || t.error) return toast((c.error || t.error).message);
+  S.clients = c.data; S.tasks = t.data;
+  render();
+}
+
+async function save(table, id, row) {
+  const q = id ? sb.from(table).update(row).eq('id', id) : sb.from(table).insert(row);
+  const { error } = await q;
+  if (error) { toast(error.message); return false; }
+  await load();
+  return true;
+}
+
+async function setDone(task, done) {
+  await save('tasks', task.id, { status: done ? 'Done' : 'Not Started', completed_at: done ? new Date().toISOString() : null });
+}
+
+// ---------- render ----------
+function render() {
+  for (const v of ['home', 'schedule', 'clients']) $('#v-' + v).hidden = S.view !== v;
+  document.querySelectorAll('.nav [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === S.view));
+  ({ home: renderHome, schedule: renderSchedule, clients: renderClients })[S.view]();
+}
+
+function taskCard(t) {
+  const c = clientOf(t.client_id);
+  const when = [t.due_date && S.view !== 'schedule' ? fmtDay(t.due_date) : '', fmtTime(t.due_time)].filter(Boolean).join(', ');
+  return `<div class="task glass ${isOpen(t) ? '' : 'is-done'}" data-task="${t.id}" role="button" tabindex="0">
+    <button class="check ${isOpen(t) ? '' : 'done'}" data-toggle="${t.id}" aria-label="${isOpen(t) ? 'Mark done' : 'Mark not done'}">${ICON.tick}</button>
+    <div class="body">
+      <div class="stripe-title" style="--c:${colorOf(t.client_id)}">${esc(t.title)}</div>
+      <div class="meta">
+        ${when ? `<span>${ICON.clock}${esc(when)}</span>` : ''}
+        ${c ? `<span>${ICON.tag}${esc(c.name)}</span>` : ''}
+        ${t.status !== 'Not Started' ? `<span class="pill ${STATUS_CLASS[t.status] || ''}">${esc(t.status)}</span>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function clientCard(c, full) {
+  const open = S.tasks.filter(t => t.client_id === c.id && isOpen(t));
+  const next = open.find(t => t.due_date);
+  return `<button class="ccard glass ${full ? 'full' : ''}" data-client="${c.id}">
+    <div class="stripe-title" style="--c:${colorOf(c.id)}">${esc(c.name)}</div>
+    <div class="divider"></div>
+    <div class="meta">
+      <span>${ICON.clock}${next ? 'Next: ' + esc(fmtDay(next.due_date)) : 'Nothing scheduled'}</span>
+      <span>${ICON.tag}${open.length} open task${open.length === 1 ? '' : 's'}</span>
+      ${c.health ? `<span class="health">${esc(c.health)}</span>` : ''}
+      ${full && c.next_action ? `<span>Next action: ${esc(c.next_action)}</span>` : ''}
+    </div>
+  </button>`;
+}
+
+function matches(t) {
+  if (S.filter === 'open' && !isOpen(t)) return false;
+  if (!['open', 'all'].includes(S.filter) && t.status !== S.filter) return false;
+  if (!S.q) return true;
+  const hay = `${t.title} ${t.notes || ''} ${clientOf(t.client_id)?.name || ''}`.toLowerCase();
+  return hay.includes(S.q.toLowerCase());
+}
+
+function renderHome() {
+  const h = new Date().getHours();
+  $('#greet').textContent = h < 12 ? 'Good morning ☀️' : h < 18 ? 'Good afternoon' : 'Good evening';
+  const name = (S.user?.email || '').split('@')[0];
+  $('#who').textContent = name;
+  $('#avatar').textContent = name.slice(0, 1).toUpperCase();
+
+  $('#chips').innerHTML = FILTERS.map(([k, label]) => {
+    const n = S.tasks.filter(t => k === 'all' || (k === 'open' ? isOpen(t) : t.status === k)).length;
+    return `<button class="chip ${S.filter === k ? 'on' : ''}" data-filter="${esc(k)}" role="tab" aria-selected="${S.filter === k}">${label}<span class="n">${n}</span></button>`;
+  }).join('');
+
+  $('#clientStrip').innerHTML = S.clients.map(c => clientCard(c)).join('')
+    || `<button class="ccard glass" data-act="newClient"><div class="stripe-title">Add your first client</div></button>`;
+
+  const list = S.tasks.filter(matches);
+  $('#listTitle').textContent = `${FILTERS.find(f => f[0] === S.filter)[1]} tasks`;
+  if (!list.length) { $('#taskList').innerHTML = `<div class="empty">${S.q ? 'No tasks match that search.' : 'Nothing here. Tap + to add a task.'}</div>`; return; }
+
+  if (S.filter === 'Done') {
+    list.sort((a, b) => (b.completed_at || b.due_date || '').localeCompare(a.completed_at || a.due_date || ''));
+    $('#taskList').innerHTML = list.map(taskCard).join('');
+    return;
+  }
+  const today = ymd(new Date());
+  const groups = [
+    ['Overdue', t => isOpen(t) && t.due_date && t.due_date < today, 'late'],
+    ['Today', t => t.due_date === today],
+    ['Upcoming', t => t.due_date > today],
+    ['No date', t => !t.due_date],
+    ['Earlier', t => !isOpen(t) && t.due_date && t.due_date < today],
+  ];
+  const seen = new Set();
+  $('#taskList').innerHTML = groups.map(([label, fn, cls]) => {
+    const g = list.filter(t => !seen.has(t) && fn(t));
+    g.forEach(t => seen.add(t));
+    if (label === 'Earlier') g.reverse();
+    return g.length ? `<div class="group ${cls || ''}">${label} · ${g.length}</div>${g.map(taskCard).join('')}` : '';
+  }).join('');
+}
+
+function renderSchedule() {
+  const today = ymd(new Date());
+  const d = parseDay(S.day);
+  $('#dayTitle').textContent = d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const dayTasks = S.tasks.filter(t => t.due_date === S.day);
+  const open = dayTasks.filter(isOpen).length;
+  $('#daySub').textContent = dayTasks.length ? `${open} open, ${dayTasks.length - open} done` : 'Nothing scheduled. Tap + to plan this day.';
+
+  const busy = new Set(S.tasks.filter(isOpen).map(t => t.due_date));
+  const start = addDays(S.day < today ? S.day : today, -7);
+  const days = Array.from({ length: 42 }, (_, i) => addDays(start, i));
+  $('#days').innerHTML = days.map(s => {
+    const x = parseDay(s);
+    return `<button class="day ${s === S.day ? 'on' : ''} ${s === today ? 'today' : ''} ${busy.has(s) ? 'has' : ''}" data-day="${s}" aria-label="${x.toDateString()}" aria-pressed="${s === S.day}">
+      <small>${x.toLocaleDateString(undefined, { weekday: 'short' })}</small><b>${String(x.getDate()).padStart(2, '0')}</b></button>`;
+  }).join('');
+  $('#days .on')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+
+  $('#timeline').innerHTML = dayTasks.length
+    ? dayTasks.map(t => `<div class="t">${t.due_time ? fmtTime(t.due_time) : 'Any time'}</div>${taskCard(t)}`).join('')
+    : '';
+}
+
+function renderClients() {
+  $('#clientList').innerHTML = S.clients.map(c => clientCard(c, true)).join('') || '<div class="empty">No clients yet.</div>';
+}
+
+// ---------- sheets ----------
+function fieldHTML([key, label, type, opts, wide], rec) {
+  const v = rec[key] ?? '';
+  const cls = wide ? 'class="wide"' : '';
+  if (type === 'select' || type === 'client') {
+    const list = type === 'client' ? S.clients.map(c => [c.id, c.name]) : opts.map(o => [o, o]);
+    const blank = key === 'status' ? '' : '<option value="">None</option>';
+    return `<label ${cls}>${label}<select name="${key}">${blank}${list.map(([val, txt]) => `<option value="${esc(val)}" ${val === v ? 'selected' : ''}>${esc(txt)}</option>`).join('')}</select></label>`;
+  }
+  if (type === 'textarea') return `<label ${cls}>${label}<textarea name="${key}">${esc(v)}</textarea></label>`;
+  const val = type === 'time' && v ? v.slice(0, 5) : v;
+  return `<label ${cls}>${label}<input name="${key}" type="${type}" value="${esc(val)}" ${key === 'title' || key === 'name' ? 'required' : ''}></label>`;
+}
+
+function closeSheet() { $('#sheetRoot').innerHTML = ''; }
+
+function openSheet(title, fields, rec, onSave, onDelete) {
+  $('#sheetRoot').innerHTML = `<div class="scrim"><form class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+    <div class="grab"></div><h2>${esc(title)}</h2>
+    <div class="form">${fields.map(f => fieldHTML(f, rec)).join('')}
+      <div class="actions">
+        ${onDelete ? '<button type="button" class="btn danger" data-del>Delete</button>' : ''}
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button class="btn primary">Save</button>
+      </div>
+    </div></form></div>`;
+  const form = $('#sheetRoot form');
+  form.querySelector('input,select')?.focus();
+  form.onsubmit = async e => {
+    e.preventDefault();
+    const row = Object.fromEntries([...new FormData(form)].map(([k, v]) => [k, v.trim() === '' ? null : v.trim()]));
+    form.querySelector('.primary').disabled = true;
+    if (await onSave(row)) closeSheet(); else form.querySelector('.primary').disabled = false;
+  };
+  form.querySelector('[data-del]')?.addEventListener('click', async () => {
+    if (confirm('Delete this permanently?') && await onDelete()) closeSheet();
+  });
+}
+
+function taskSheet(t) {
+  const rec = t || { status: 'Not Started', due_date: S.view === 'schedule' ? S.day : ymd(new Date()) };
+  openSheet(t ? 'Edit task' : 'New task', TASK_FIELDS, rec, row => {
+    const wasDone = t?.status === 'Done';
+    if (row.status === 'Done' && !wasDone) row.completed_at = new Date().toISOString();
+    if (row.status !== 'Done') row.completed_at = null;
+    return save('tasks', t?.id, row);
+  }, t && (async () => { const { error } = await sb.from('tasks').delete().eq('id', t.id); if (error) return toast(error.message); await load(); return true; }));
+}
+
+function clientSheet(c) {
+  openSheet(c ? c.name : 'New client', CLIENT_FIELDS, c || {}, row => save('clients', c?.id, row),
+    c && (async () => { const { error } = await sb.from('clients').delete().eq('id', c.id); if (error) return toast(error.message); await load(); return true; }));
+}
+
+function accountSheet() {
+  $('#sheetRoot').innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true" aria-label="Account">
+    <div class="grab"></div><h2>Account</h2>
+    <p style="color:var(--muted);margin-bottom:16px">Signed in as ${esc(S.user?.email)}</p>
+    <div class="actions"><button class="btn" data-close>Close</button><button class="btn primary" data-act="signout">Sign out</button></div>
+  </div></div>`;
+}
+
+// ---------- events ----------
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-toggle],[data-task],[data-client],[data-view],[data-filter],[data-day],[data-act],[data-close],.scrim');
+  if (!el) return;
+  const d = el.dataset;
+  if (el.classList.contains('scrim')) { if (e.target === el) closeSheet(); return; }
+  if (d.close !== undefined) return closeSheet();
+  if (d.toggle) { const t = S.tasks.find(x => x.id === d.toggle); return setDone(t, isOpen(t)); }
+  if (d.task) return taskSheet(S.tasks.find(x => x.id === d.task));
+  if (d.client) return clientSheet(clientOf(d.client));
+  if (d.view) { S.view = d.view; scrollTo(0, 0); return render(); }
+  if (d.filter) { S.filter = d.filter; return render(); }
+  if (d.day) { S.day = d.day; return render(); }
+  if (d.act === 'newTask') return taskSheet();
+  if (d.act === 'newClient') return clientSheet();
+  if (d.act === 'account') return accountSheet();
+  if (d.act === 'today') { S.day = ymd(new Date()); return render(); }
+  if (d.act === 'signout') { closeSheet(); return sb.auth.signOut(); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeSheet();
+  if (e.key === 'Enter' && e.target.dataset.task) e.target.click();
+});
+$('#q').addEventListener('input', e => { S.q = e.target.value; renderHome(); });
+
+$('#loginForm').onsubmit = async e => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const { error } = await sb.auth.signInWithPassword({ email: f.get('email'), password: f.get('password') });
+  if (error) toast(error.message);
+};
+
+sb.auth.onAuthStateChange((_evt, session) => {
+  S.user = session?.user || null;
+  $('#login').hidden = !!S.user;
+  $('#app').hidden = !S.user;
+  if (S.user) load();
+});
+
+// Cheap cross-device sync: refetch whenever the tab comes back into view.
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.user) load(); });
+</script>
+</body>
+</html>
