@@ -7,11 +7,11 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const STATUSES = ['Not Started', 'In Progress', 'Waiting', 'Blocked', 'Done'];
 const STATUS_CLASS = { 'In Progress': 's-ip', Waiting: 's-w', Blocked: 's-b', Done: 's-d' };
 const FILTERS = [['open', 'Open'], ['In Progress', 'In Progress'], ['Waiting', 'Waiting'], ['Blocked', 'Blocked'], ['Done', 'Done'], ['all', 'All']];
-const COLORS = ['#F0386B', '#F5C518', '#F97316', '#8B5CF6', '#10B981', '#3B82F6'];
+const COLORS = ['oklch(0.68 0.17 33)', 'oklch(0.68 0.12 195)', 'oklch(0.62 0.17 300)', 'oklch(0.78 0.14 85)', 'oklch(0.64 0.15 150)', 'oklch(0.62 0.16 255)', 'oklch(0.66 0.19 355)'];
 const ICON = {
-  clock: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 10.6V6h-2v7.4l4.3 2.6 1-1.7z"/></svg>',
-  tag: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10a2 2 0 0 1 2 2v16l-7-4-7 4V5a2 2 0 0 1 2-2z"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
   tick: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
 };
 
 const TASK_FIELDS = [
@@ -42,7 +42,7 @@ const CLIENT_FIELDS = [
   ['notes', 'Notes', 'textarea', null, 'wide'],
 ];
 
-const S = { clients: [], tasks: [], filter: 'open', q: '', day: ymd(new Date()), view: 'home', user: null };
+const S = { clients: [], tasks: [], filter: 'open', client: 'all', q: '', day: ymd(new Date()), view: 'home', user: null };
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -62,8 +62,16 @@ function fmtTime(t) {
   return `${h % 12 || 12}${m ? ':' + String(m).padStart(2, '0') : ''} ${h < 12 ? 'am' : 'pm'}`;
 }
 const clientOf = id => S.clients.find(c => c.id === id);
-const colorOf = id => { const i = S.clients.findIndex(c => c.id === id); return i < 0 ? '#C4B5FD' : COLORS[i % COLORS.length]; };
+const colorOf = id => { const i = S.clients.findIndex(c => c.id === id); return i < 0 ? 'var(--faint)' : COLORS[i % COLORS.length]; };
 const isOpen = t => t.status !== 'Done';
+const isLate = t => isOpen(t) && t.due_date && t.due_date < ymd(new Date());
+const inClient = t => S.client === 'all' || t.client_id === S.client;
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+function clientStats(id) {
+  const open = S.tasks.filter(t => t.client_id === id && isOpen(t));
+  const today = ymd(new Date());
+  return { open: open.length, late: open.filter(isLate).length, today: open.filter(t => t.due_date === today).length, next: open.find(t => t.due_date) };
+}
 
 function toast(msg) {
   const el = document.createElement('div');
@@ -98,42 +106,78 @@ async function setDone(task, done) {
 // ---------- render ----------
 function render() {
   for (const v of ['home', 'schedule', 'clients']) $('#v-' + v).hidden = S.view !== v;
-  document.querySelectorAll('.nav [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === S.view));
+  document.querySelectorAll('nav [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === S.view && (S.view !== 'home' || S.client === 'all')));
+  renderSide();
   ({ home: renderHome, schedule: renderSchedule, clients: renderClients })[S.view]();
 }
 
 function taskCard(t) {
   const c = clientOf(t.client_id);
   const when = [t.due_date && S.view !== 'schedule' ? fmtDay(t.due_date) : '', fmtTime(t.due_time)].filter(Boolean).join(', ');
-  return `<div class="task glass ${isOpen(t) ? '' : 'is-done'}" data-task="${t.id}" role="button" tabindex="0">
+  return `<div class="task ${isOpen(t) ? '' : 'is-done'}" data-task="${t.id}" role="button" tabindex="0">
     <button class="check ${isOpen(t) ? '' : 'done'}" data-toggle="${t.id}" aria-label="${isOpen(t) ? 'Mark done' : 'Mark not done'}">${ICON.tick}</button>
     <div class="body">
-      <div class="stripe-title" style="--c:${colorOf(t.client_id)}">${esc(t.title)}</div>
+      <div class="title">${esc(t.title)}</div>
       <div class="meta">
-        ${when ? `<span>${ICON.clock}${esc(when)}</span>` : ''}
-        ${c ? `<span>${ICON.tag}${esc(c.name)}</span>` : ''}
-        ${t.status !== 'Not Started' ? `<span class="pill ${STATUS_CLASS[t.status] || ''}">${esc(t.status)}</span>` : ''}
+        ${S.client === 'all' || S.view !== 'home' ? `<span class="client"><i class="dot" style="--c:${colorOf(t.client_id)}"></i><span class="nm">${c ? esc(c.name) : 'No client'}</span></span>` : ''}
+        <span class="when ${isLate(t) ? 'late' : ''}">${when ? ICON.clock + esc(when) : ''}</span>
+        <span class="stat">${t.status !== 'Not Started' ? `<span class="pill ${STATUS_CLASS[t.status] || ''}">${esc(t.status)}</span>` : ''}</span>
       </div>
     </div>
   </div>`;
 }
 
-function clientCard(c, full) {
-  const open = S.tasks.filter(t => t.client_id === c.id && isOpen(t));
-  const next = open.find(t => t.due_date);
-  return `<button class="ccard glass ${full ? 'full' : ''}" data-client="${c.id}">
-    <div class="stripe-title" style="--c:${colorOf(c.id)}">${esc(c.name)}</div>
-    <div class="divider"></div>
-    <div class="meta">
-      <span>${ICON.clock}${next ? 'Next: ' + esc(fmtDay(next.due_date)) : 'Nothing scheduled'}</span>
-      <span>${ICON.tag}${open.length} open task${open.length === 1 ? '' : 's'}</span>
-      ${c.health ? `<span class="health">${esc(c.health)}</span>` : ''}
-      ${full && c.next_action ? `<span>Next action: ${esc(c.next_action)}</span>` : ''}
-    </div>
+function clientCard(c) {
+  const st = clientStats(c.id);
+  return `<button class="ccard card" data-client="${c.id}">
+    <div class="top"><i class="dot" style="--c:${colorOf(c.id)}"></i><b>${esc(c.name)}</b>${c.health ? `<span class="health">${esc(c.health)}</span>` : ''}</div>
+    <div class="row"><span><strong>${st.open}</strong> open</span><span><strong class="${st.late ? 'late' : ''}">${st.late}</strong> overdue</span><span><strong>${st.today}</strong> today</span></div>
+    <div class="next"><span>Next action</span>${c.next_action ? esc(c.next_action) : st.next ? esc(st.next.title) : 'Nothing scheduled'}</div>
   </button>`;
 }
 
+function renderSide() {
+  $('#sideClients').innerHTML = S.clients.map(c => {
+    const st = clientStats(c.id);
+    const on = S.view === 'home' && S.client === c.id;
+    return `<button class="side-item ${on ? 'on' : ''}" data-cfilter="${c.id}" ${on ? 'aria-current="true"' : ''}>
+      <i class="dot" style="--c:${colorOf(c.id)}"></i><span class="name">${esc(c.name)}</span>
+      <span class="n ${st.late ? 'late' : ''}" title="${st.late ? plural(st.late, 'overdue task') : plural(st.open, 'open task')}">${st.late || st.open || ''}</span></button>`;
+  }).join('');
+}
+
+function clientPanel(c) {
+  const fact = (label, v, cls = '') => v ? `<div><dt>${label}</dt><dd class="${cls}">${v}</dd></div>` : '';
+  const link = v => /^https?:\/\//i.test(v) ? `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer">${esc(v)}</a>` : esc(v);
+  const st = clientStats(c.id);
+  const due = c.next_action_due ? ` (${esc(fmtDay(c.next_action_due))})` : '';
+  return `<div class="cpanel card">
+    <div class="cpanel-top"><i class="dot" style="--c:${colorOf(c.id)}"></i><h2>${esc(c.name)}</h2><button class="link-btn" data-client="${c.id}">Edit</button></div>
+    <div class="health">${c.health ? esc(c.health) + ' · ' : ''}${plural(st.open, 'open task')}${st.late ? `, <span style="color:var(--late)">${st.late} overdue</span>` : ''}</div>
+    <dl class="facts">
+      ${fact('Current focus', esc(c.current_focus))}
+      ${fact('Next action', c.next_action ? esc(c.next_action) + due : '', c.next_action_due && c.next_action_due < ymd(new Date()) ? 'late' : '')}
+      ${fact('Waiting on', c.waiting_on && c.waiting_on !== 'Nothing' ? esc(c.waiting_on) : '')}
+      ${fact('Blocker', esc(c.main_blocker))}
+      ${fact('Contact', [c.main_contact, c.channel].filter(Boolean).map(esc).join(' · '))}
+      ${fact('Next touchpoint', c.next_touchpoint ? esc(fmtDay(c.next_touchpoint)) : '')}
+      ${fact('Links', c.important_links ? link(c.important_links) : '')}
+    </dl>
+  </div>`;
+}
+
+function glancePanel() {
+  if (!S.clients.length) return '';
+  return `<div class="glance card"><h2>Clients at a glance</h2>${S.clients.map(c => {
+    const st = clientStats(c.id);
+    const sub = st.next ? `Next: ${esc(st.next.title)}` : 'Nothing scheduled';
+    return `<button class="glance-row" data-cfilter="${c.id}"><i class="dot" style="--c:${colorOf(c.id)}"></i><b>${esc(c.name)}</b>
+      <span class="n ${st.late ? 'late' : ''}">${st.late ? st.late + ' overdue' : st.open + ' open'}</span><span class="sub">${sub}</span></button>`;
+  }).join('')}</div>`;
+}
+
 function matches(t) {
+  if (!inClient(t)) return false;
   if (S.filter === 'open' && !isOpen(t)) return false;
   if (!['open', 'all'].includes(S.filter) && t.status !== S.filter) return false;
   if (!S.q) return true;
@@ -143,26 +187,38 @@ function matches(t) {
 
 function renderHome() {
   const h = new Date().getHours();
-  $('#greet').textContent = h < 12 ? 'Good morning ☀️' : h < 18 ? 'Good afternoon' : 'Good evening';
   const name = (S.user?.email || '').split('@')[0];
   $('#who').textContent = name;
-  $('#avatar').textContent = name.slice(0, 1).toUpperCase();
+  $('#avatar').textContent = $('#avatarM').textContent = name.slice(0, 1).toUpperCase();
+  const c = S.client === 'all' ? null : clientOf(S.client);
+  if (!c) S.client = 'all';
+  const date = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+  $('#greet').textContent = c ? date : `${h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'} · ${date}`;
+  $('#homeTitle').textContent = c ? c.name : 'All work';
+
+  const scoped = S.tasks.filter(inClient);
+  const allOpen = S.tasks.filter(isOpen).length;
+  $('#tabs').innerHTML = [['all', 'All', allOpen], ...S.clients.map(x => [x.id, x.name, clientStats(x.id).open])].map(([id, name, n]) =>
+    `<button class="tab ${S.client === id ? 'on' : ''}" data-cfilter="${id}" role="tab" aria-selected="${S.client === id}">${id === 'all' ? '' : `<i class="dot" style="--c:${colorOf(id)}"></i>`}${esc(name)}<span class="n">${n}</span></button>`
+  ).join('') + `<button class="tab" data-act="newClient" aria-label="Add client">${ICON.plus.replace('<svg', '<svg width="16" height="16"')}</button>`;
 
   $('#chips').innerHTML = FILTERS.map(([k, label]) => {
-    const n = S.tasks.filter(t => k === 'all' || (k === 'open' ? isOpen(t) : t.status === k)).length;
+    const n = scoped.filter(t => k === 'all' || (k === 'open' ? isOpen(t) : t.status === k)).length;
     return `<button class="chip ${S.filter === k ? 'on' : ''}" data-filter="${esc(k)}" role="tab" aria-selected="${S.filter === k}">${label}<span class="n">${n}</span></button>`;
   }).join('');
 
-  $('#clientStrip').innerHTML = S.clients.map(c => clientCard(c)).join('')
-    || `<button class="ccard glass" data-act="newClient"><div class="stripe-title">Add your first client</div></button>`;
+  $('#aside').innerHTML = c ? clientPanel(c) : glancePanel();
 
   const list = S.tasks.filter(matches);
-  $('#listTitle').textContent = `${FILTERS.find(f => f[0] === S.filter)[1]} tasks`;
-  if (!list.length) { $('#taskList').innerHTML = `<div class="empty">${S.q ? 'No tasks match that search.' : 'Nothing here. Tap + to add a task.'}</div>`; return; }
+  if (!list.length) {
+    $('#taskList').innerHTML = `<div class="empty card">${S.q ? '<b>No tasks match that search.</b>Try a client name or a word from the notes.'
+      : `<b>Nothing ${S.filter === 'open' ? 'open' : 'here'}${c ? ' for ' + esc(c.name) : ''}.</b>New tasks land here, grouped by due date.<br><button class="btn primary" data-act="newTask">New task</button>`}</div>`;
+    return;
+  }
 
   if (S.filter === 'Done') {
     list.sort((a, b) => (b.completed_at || b.due_date || '').localeCompare(a.completed_at || a.due_date || ''));
-    $('#taskList').innerHTML = list.map(taskCard).join('');
+    $('#taskList').innerHTML = `<div class="list">${list.map(taskCard).join('')}</div>`;
     return;
   }
   const today = ymd(new Date());
@@ -178,7 +234,7 @@ function renderHome() {
     const g = list.filter(t => !seen.has(t) && fn(t));
     g.forEach(t => seen.add(t));
     if (label === 'Earlier') g.reverse();
-    return g.length ? `<div class="group ${cls || ''}">${label} · ${g.length}</div>${g.map(taskCard).join('')}` : '';
+    return g.length ? `<div class="group ${cls || ''}">${label}<span class="n">${g.length}</span></div><div class="list">${g.map(taskCard).join('')}</div>` : '';
   }).join('');
 }
 
@@ -188,7 +244,7 @@ function renderSchedule() {
   $('#dayTitle').textContent = d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const dayTasks = S.tasks.filter(t => t.due_date === S.day);
   const open = dayTasks.filter(isOpen).length;
-  $('#daySub').textContent = dayTasks.length ? `${open} open, ${dayTasks.length - open} done` : 'Nothing scheduled. Tap + to plan this day.';
+  $('#daySub').textContent = dayTasks.length ? `${open} open, ${dayTasks.length - open} done` : 'Nothing scheduled. Add a task to plan this day.';
 
   const busy = new Set(S.tasks.filter(isOpen).map(t => t.due_date));
   const start = addDays(S.day < today ? S.day : today, -7);
@@ -201,12 +257,13 @@ function renderSchedule() {
   $('#days .on')?.scrollIntoView({ inline: 'center', block: 'nearest' });
 
   $('#timeline').innerHTML = dayTasks.length
-    ? dayTasks.map(t => `<div class="t">${t.due_time ? fmtTime(t.due_time) : 'Any time'}</div>${taskCard(t)}`).join('')
+    ? dayTasks.map(t => `<div class="t">${t.due_time ? fmtTime(t.due_time) : 'Any time'}</div><div class="list">${taskCard(t)}</div>`).join('')
     : '';
 }
 
 function renderClients() {
-  $('#clientList').innerHTML = S.clients.map(c => clientCard(c, true)).join('') || '<div class="empty">No clients yet.</div>';
+  $('#clientCount').textContent = plural(S.clients.length, 'client');
+  $('#clientList').innerHTML = S.clients.map(c => clientCard(c)).join('') || '<div class="empty card"><b>No clients yet.</b>Each client gets its own tab and color.</div>';
 }
 
 // ---------- sheets ----------
@@ -251,7 +308,7 @@ function openSheet(title, fields, rec, onSave, onDelete) {
 }
 
 function taskSheet(t) {
-  const rec = t || { status: 'Not Started', due_date: S.view === 'schedule' ? S.day : ymd(new Date()) };
+  const rec = t || { status: 'Not Started', due_date: S.view === 'schedule' ? S.day : ymd(new Date()), client_id: S.client === 'all' ? null : S.client };
   openSheet(t ? 'Edit task' : 'New task', TASK_FIELDS, rec, row => {
     const wasDone = t?.status === 'Done';
     if (row.status === 'Done' && !wasDone) row.completed_at = new Date().toISOString();
@@ -268,14 +325,14 @@ function clientSheet(c) {
 function accountSheet() {
   $('#sheetRoot').innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true" aria-label="Account">
     <div class="grab"></div><h2>Account</h2>
-    <p style="color:var(--muted);margin-bottom:16px">Signed in as ${esc(S.user?.email)}</p>
+    <p style="color:var(--muted);margin-bottom:18px">Signed in as ${esc(S.user?.email)}</p>
     <div class="actions"><button class="btn" data-close>Close</button><button class="btn primary" data-act="signout">Sign out</button></div>
   </div></div>`;
 }
 
 // ---------- events ----------
 document.addEventListener('click', e => {
-  const el = e.target.closest('[data-toggle],[data-task],[data-client],[data-view],[data-filter],[data-day],[data-act],[data-close],.scrim');
+  const el = e.target.closest('[data-toggle],[data-task],[data-client],[data-cfilter],[data-view],[data-filter],[data-day],[data-act],[data-close],.scrim');
   if (!el) return;
   const d = el.dataset;
   if (el.classList.contains('scrim')) { if (e.target === el) closeSheet(); return; }
@@ -283,7 +340,8 @@ document.addEventListener('click', e => {
   if (d.toggle) { const t = S.tasks.find(x => x.id === d.toggle); return setDone(t, isOpen(t)); }
   if (d.task) return taskSheet(S.tasks.find(x => x.id === d.task));
   if (d.client) return clientSheet(clientOf(d.client));
-  if (d.view) { S.view = d.view; scrollTo(0, 0); return render(); }
+  if (d.cfilter) { S.client = d.cfilter; S.view = 'home'; scrollTo(0, 0); return render(); }
+  if (d.view) { S.view = d.view; if (d.view === 'home') S.client = 'all'; scrollTo(0, 0); return render(); }
   if (d.filter) { S.filter = d.filter; return render(); }
   if (d.day) { S.day = d.day; return render(); }
   if (d.act === 'newTask') return taskSheet();
@@ -294,6 +352,11 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeSheet();
+  const typing = e.target.closest('input,textarea,select,[contenteditable]');
+  if (!typing && !$('#sheetRoot').children.length && S.user && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    if (e.key === 'n') { e.preventDefault(); return taskSheet(); }
+    if (e.key === '/') { e.preventDefault(); S.view = 'home'; render(); return $('#q').focus(); }
+  }
   if (e.key === 'Enter' && e.target.dataset.task) e.target.click();
 });
 $('#q').addEventListener('input', e => { S.q = e.target.value; renderHome(); });
