@@ -42,7 +42,7 @@ const CLIENT_FIELDS = [
   ['notes', 'Notes', 'textarea', null, 'wide'],
 ];
 
-const S = { clients: [], tasks: [], filter: 'open', client: 'all', q: '', day: ymd(new Date()), view: 'home', user: null };
+const S = { enter: true, clients: [], tasks: [], filter: 'open', client: 'all', q: '', day: ymd(new Date()), view: 'home', user: null };
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -106,9 +106,12 @@ async function setDone(task, done) {
 // ---------- render ----------
 function render() {
   for (const v of ['home', 'schedule', 'clients']) $('#v-' + v).hidden = S.view !== v;
+  const enter = S.enter; S.enter = false;
   document.querySelectorAll('nav [data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === S.view && (S.view !== 'home' || S.client === 'all')));
   renderSide();
   ({ home: renderHome, schedule: renderSchedule, clients: renderClients })[S.view]();
+  $('#v-' + S.view).classList.toggle('enter', enter);
+  if (enter) document.querySelectorAll(`#v-${S.view} .task, #v-${S.view} .ccard`).forEach((el, i) => el.style.setProperty('--i', Math.min(i, 12)));
 }
 
 function taskCard(t) {
@@ -120,8 +123,8 @@ function taskCard(t) {
       <div class="title">${esc(t.title)}</div>
       <div class="meta">
         ${S.client === 'all' || S.view !== 'home' ? `<span class="client"><i class="dot" style="--c:${colorOf(t.client_id)}"></i><span class="nm">${c ? esc(c.name) : 'No client'}</span></span>` : ''}
-        <span class="when ${isLate(t) ? 'late' : ''}">${when ? ICON.clock + esc(when) : ''}</span>
         <span class="stat">${t.status !== 'Not Started' ? `<span class="pill ${STATUS_CLASS[t.status] || ''}">${esc(t.status)}</span>` : ''}</span>
+        <span class="when ${isLate(t) ? 'late' : ''}">${when ? ICON.clock + esc(when) : ''}</span>
       </div>
     </div>
   </div>`;
@@ -234,7 +237,7 @@ function renderHome() {
     ['Earlier', t => !isOpen(t) && t.due_date && t.due_date < today],
   ];
   const seen = new Set();
-  $('#taskList').innerHTML = groups.map(([label, fn, cls]) => {
+  $('#taskList').innerHTML = `<div class="thead" aria-hidden="true"><span>Task</span><span class="client">Client</span><span class="stat">Status</span><span class="when">Due</span></div>` + groups.map(([label, fn, cls]) => {
     const g = list.filter(t => !seen.has(t) && fn(t));
     g.forEach(t => seen.add(t));
     if (label === 'Earlier') g.reverse();
@@ -344,9 +347,9 @@ document.addEventListener('click', e => {
   if (d.toggle) { const t = S.tasks.find(x => x.id === d.toggle); return setDone(t, isOpen(t)); }
   if (d.task) return taskSheet(S.tasks.find(x => x.id === d.task));
   if (d.client) return clientSheet(clientOf(d.client));
-  if (d.cfilter) { S.client = d.cfilter; S.view = 'home'; scrollTo(0, 0); return render(); }
-  if (d.view) { S.view = d.view; if (d.view === 'home') S.client = 'all'; scrollTo(0, 0); return render(); }
-  if (d.filter) { S.filter = d.filter; return render(); }
+  if (d.cfilter) { S.enter = true; S.client = d.cfilter; S.view = 'home'; scrollTo(0, 0); return render(); }
+  if (d.view) { S.enter = true; S.view = d.view; if (d.view === 'home') S.client = 'all'; scrollTo(0, 0); return render(); }
+  if (d.filter) { S.enter = true; S.filter = d.filter; return render(); }
   if (d.day) { S.day = d.day; return render(); }
   if (d.act === 'newTask') return taskSheet();
   if (d.act === 'newClient') return clientSheet();

@@ -177,7 +177,7 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
 
 /* ---------- task list ---------- */
 .group{display:flex;align-items:baseline;gap:8px;font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:-.015em;margin:30px 4px 10px}
-.group:first-child{margin-top:0}
+.group:first-child,.thead+.group{margin-top:0}
 .group .n{font-family:"Plus Jakarta Sans",sans-serif;font-size:13px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
 .group.late,.group.late .n{color:var(--late)}
 .group.late+.list{border-color:color-mix(in oklch,var(--late) 40%,var(--line))}
@@ -200,8 +200,17 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
   .task .meta .client{width:150px}
   .task .meta .client .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .task .meta .when{width:150px;justify-content:flex-end;white-space:nowrap}
-  .task .meta .stat{width:96px;justify-content:flex-end}
+  .task .meta .stat{width:110px}
+  .thead{display:flex;align-items:center;gap:14px;padding:0 16px 10px 50px;font-size:12px;font-weight:600;color:var(--muted)}
+  .thead span:first-child{flex:1;margin-right:2px}
+  .thead .client{width:150px}.thead .stat{width:110px}.thead .when{width:150px;text-align:right}
 }
+.thead{display:none}
+@media (min-width:900px){.thead{display:flex}}
+/* rows rise in once when the list changes; content is visible if the animation never runs */
+.enter .task,.enter .ccard{animation:rise .5s cubic-bezier(.22,1,.36,1) backwards;animation-delay:calc(var(--i,0) * 40ms)}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}}
+@media (prefers-reduced-motion:reduce){.enter .task,.enter .ccard{animation:none}}
 .check{position:relative;width:22px;height:22px;border-radius:7px;border:1.5px solid var(--faint);flex:none;display:grid;place-items:center;color:transparent;background:var(--surface);
   transition:background .15s,border-color .15s,color .15s;margin-top:1px}
 @media (min-width:900px){.check{margin-top:0}}
