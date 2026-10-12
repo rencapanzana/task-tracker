@@ -7,6 +7,8 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://gzvniozcdiaejdakdjfe.supabase.co wss://gzvniozcdiaejdakdjfe.supabase.co; img-src 'self' data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#2C1427" media="(max-width: 899px) and (prefers-color-scheme: light)">
+<meta name="theme-color" content="#2C1427" media="(max-width: 899px) and (prefers-color-scheme: dark)">
 <meta name="theme-color" content="#F8F4F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#171216" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -300,11 +302,45 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
   .tab{height:42px}
   .task{padding:14px}
   .task .title{font-size:15.5px}
-  .head .avatar{order:-1}
   .actions{position:sticky;bottom:calc(-22px - env(safe-area-inset-bottom));background:var(--surface);margin:8px -18px calc(-22px - env(safe-area-inset-bottom));
     padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
   .login .actions{position:static;margin:8px 0 0;padding:0;border:0}
   .cpanel .facts{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+}
+
+/* ---------- phone: plum header band with swipeable client cards (desktop's sidebar + glance panel, adapted) ---------- */
+.hero{display:contents}
+.d-short{display:none}
+@media (max-width:899px){.hero .d-short{display:inline}}
+@media (max-width:899px){
+  .hero{display:block;background:oklch(0.235 0.05 335);color:var(--side-ink);border-radius:0 0 26px 26px;
+    margin:calc(-1 * max(18px,env(safe-area-inset-top))) -16px 20px;padding:max(20px,env(safe-area-inset-top)) 16px 18px}
+  .hero .head{margin-bottom:16px}
+  .hero .head:last-child{margin-bottom:0}
+  .hero .head .titles{min-width:0}
+  .hero .head h1{font-size:34px}
+  .hero .head small{color:var(--side-muted)}
+  .hero .greet-word,.hero .d-long{display:none}
+  .hero .btn{background:oklch(1 0 0 / .1);color:var(--side-ink)}
+  .hero .head small b{color:var(--side-ink)}
+  .hero .head small b.late{color:oklch(0.80 0.13 30)}
+  .hero .head .avatar{width:40px;height:40px;border-radius:12px;font-size:16px}
+  .hero .search{order:3;flex-basis:100%;background:oklch(1 0 0 / .07);border-color:oklch(1 0 0 / .12);color:var(--side-ink)}
+  .hero .search svg,.hero .search input::placeholder{color:var(--side-muted)}
+  .hero .search:focus-within{box-shadow:0 0 0 3px oklch(1 0 0 / .12)}
+  .hero .head .titles{flex:1}
+  .tabs{gap:10px;margin-bottom:0;scroll-snap-type:x mandatory;scroll-padding:0 16px;padding-bottom:4px}
+  .tab{flex-direction:column;align-items:stretch;gap:3px;height:auto;width:clamp(156px,46vw,210px);padding:12px 14px;border-radius:16px;text-align:left;
+    background:oklch(1 0 0 / .06);border:1px solid oklch(1 0 0 / .1);color:var(--side-ink);scroll-snap-align:start}
+  .tab .t-top{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;min-width:0}
+  .tab .t-top span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tab .t-n{font-family:var(--display);font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums}
+  .tab .t-n em{font-style:normal;font-family:"Plus Jakarta Sans",sans-serif;font-size:13px;font-weight:600;letter-spacing:0;color:var(--side-muted)}
+  .tab .t-n .late{color:oklch(0.80 0.13 30)}
+  .tab .t-next{font-size:12.5px;font-weight:500;color:var(--side-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tab.on{background:var(--accent);border-color:var(--accent);color:oklch(0.99 0 0)}
+  .tab.on .t-n em,.tab.on .t-next,.tab.on .t-n .late{color:oklch(0.99 0 0 / .85)}
+  .tab.add{width:56px;align-items:center;justify-content:center;color:var(--side-muted)}
 }
 
 /* ---------- login ---------- */
@@ -354,9 +390,10 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
 
     <!-- Tasks -->
     <section id="v-home">
+      <div class="hero">
       <header class="head">
-        <div class="avatar mobile-only" id="avatarM"></div>
         <div class="titles"><h1 id="homeTitle">All work</h1><small id="greet"></small></div>
+        <button class="avatar mobile-only" id="avatarM" data-act="account" aria-label="Account"></button>
         <label class="search">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
           <input id="q" type="search" placeholder="Search tasks and notes" aria-label="Search tasks">
@@ -364,6 +401,7 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
         </label>
       </header>
       <div class="tabs" id="tabs" role="tablist" aria-label="Clients"></div>
+      </div>
       <div class="home-grid">
         <div class="aside" id="aside"></div>
         <div class="tasks-col">
@@ -375,10 +413,10 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
 
     <!-- Schedule -->
     <section id="v-schedule" hidden>
-      <header class="head">
+      <div class="hero"><header class="head">
         <div class="titles"><h1>Schedule</h1><small id="dayTitle"></small></div>
         <button class="btn" data-act="today">Jump to today</button>
-      </header>
+      </header></div>
       <div class="panel card">
         <p id="daySub"></p>
         <div class="days" id="days"></div>
@@ -388,10 +426,10 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
 
     <!-- Clients -->
     <section id="v-clients" hidden>
-      <header class="head">
+      <div class="hero"><header class="head">
         <div class="titles"><h1>Clients</h1><small id="clientCount"></small></div>
         <button class="btn primary" data-act="newClient" style="flex:none">Add client</button>
-      </header>
+      </header></div>
       <div class="cgrid" id="clientList"></div>
     </section>
   </div></main>

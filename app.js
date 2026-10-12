@@ -196,6 +196,7 @@ function renderHome() {
   const c = S.client === 'all' ? null : clientOf(S.client);
   if (!c) S.client = 'all';
   const date = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+  const short = new Date().toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
   $('#homeTitle').innerHTML = c ? `<i class="dot" style="--c:${colorOf(c.id)}"></i>${esc(c.name)}` : 'All work';
 
   const scoped = S.tasks.filter(inClient);
@@ -204,11 +205,15 @@ function renderHome() {
   const status = late || due
     ? [late && `<b class="late">${late} overdue</b>`, due && `<b>${due} due today</b>`].filter(Boolean).join(' · ')
     : 'Nothing overdue or due today';
-  $('#greet').innerHTML = `${c ? '' : (h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening') + ' · '}${date} · ${status}`;
-  const allOpen = S.tasks.filter(isOpen).length;
-  $('#tabs').innerHTML = [['all', 'All', allOpen], ...S.clients.map(x => [x.id, x.name, clientStats(x.id).open])].map(([id, name, n]) =>
-    `<button class="tab ${S.client === id ? 'on' : ''}" data-cfilter="${id}" role="tab" aria-selected="${S.client === id}">${id === 'all' ? '' : `<i class="dot" style="--c:${colorOf(id)}"></i>`}${esc(name)}<span class="n">${n}</span></button>`
-  ).join('') + `<button class="tab" data-act="newClient" aria-label="Add client">${ICON.plus.replace('<svg', '<svg width="16" height="16"')}</button>`;
+  $('#greet').innerHTML = `${c ? '' : `<span class="greet-word">${h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'} · </span>`}<span class="d-long">${date}</span><span class="d-short">${short}</span> · ${status}`;
+  const card = (id, name, st, next) => `<button class="tab ${S.client === id ? 'on' : ''}" data-cfilter="${id}" role="tab" aria-selected="${S.client === id}">
+    <span class="t-top">${id === 'all' ? '' : `<i class="dot" style="--c:${colorOf(id)}"></i>`}<span>${esc(name)}</span></span>
+    <span class="t-n">${st.open} <em>open</em>${st.late ? ` <em class="late">· ${st.late} overdue</em>` : ''}</span>
+    <span class="t-next">${next ? 'Next: ' + esc(next) : 'Nothing scheduled'}</span></button>`;
+  const openAll = S.tasks.filter(isOpen);
+  $('#tabs').innerHTML = card('all', 'All clients', { open: openAll.length, late: openAll.filter(isLate).length }, openAll.find(t => t.due_date)?.title)
+    + S.clients.map(x => { const st = clientStats(x.id); return card(x.id, x.name, st, st.next?.title); }).join('')
+    + `<button class="tab add" data-act="newClient" aria-label="Add client">${ICON.plus.replace('<svg', '<svg width="20" height="20"')}</button>`;
 
   $('#chips').innerHTML = FILTERS.map(([k, label]) => {
     const n = scoped.filter(t => k === 'all' || (k === 'open' ? isOpen(t) : t.status === k)).length;
