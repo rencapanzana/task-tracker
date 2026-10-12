@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#F8F4F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#171216" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous"></script>
 <style>
 :root{
@@ -32,6 +32,7 @@
   --shadow:0 1px 2px oklch(0.22 0.03 335 / .06),0 8px 24px oklch(0.22 0.03 335 / .06);
   --shadow-lg:0 24px 60px oklch(0.15 0.04 335 / .28);
   --r:14px; --r-sm:10px;
+  --display:"Bricolage Grotesque","Plus Jakarta Sans",system-ui,sans-serif;
   --z-sticky:10; --z-nav:20; --z-scrim:30; --z-toast:40;
 }
 @media (prefers-color-scheme:dark){
@@ -55,7 +56,9 @@ html{-webkit-text-size-adjust:100%}
 body{font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:15px;line-height:1.45;color:var(--ink);background:var(--bg);min-height:100dvh;-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none}
-a{color:var(--accent-ink)}
+a{color:var(--accent-ink);text-underline-offset:3px}
+::selection{background:var(--accent-soft);color:var(--ink)}
+html{caret-color:var(--accent-bright);accent-color:var(--accent);scrollbar-color:var(--faint) transparent}
 [hidden]{display:none!important}
 :focus-visible{outline:2px solid var(--accent-bright);outline-offset:2px;border-radius:6px}
 svg{flex:none}
@@ -81,7 +84,7 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
 
 .brand{display:flex;align-items:center;gap:10px;padding:0 8px 18px}
 .avatar{width:36px;height:36px;border-radius:11px;flex:none;display:grid;place-items:center;font-weight:800;font-size:15px;color:oklch(0.99 0 0);background:var(--accent)}
-.brand b{display:block;font-size:14.5px;font-weight:700;line-height:1.2}
+.brand b{display:block;font-family:var(--display);font-size:17px;font-weight:800;letter-spacing:-.01em;line-height:1.15}
 .brand small{display:block;font-size:12.5px;color:var(--side-muted)}
 .new-btn{display:flex;align-items:center;gap:8px;height:42px;padding:0 12px;border-radius:var(--r-sm);font-weight:700;font-size:14px;
   color:oklch(0.99 0 0);background:var(--accent);margin-bottom:14px;transition:background .15s}
@@ -103,10 +106,14 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
 .side-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--side-line)}
 
 /* ---------- page header ---------- */
-.head{display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px;margin-bottom:20px}
+.head{display:flex;align-items:flex-start;flex-wrap:wrap;gap:16px 20px;margin-bottom:26px}
 .head .titles{flex:1;min-width:200px}
-.head small{display:block;color:var(--muted);font-size:13.5px;font-weight:500}
-.head h1{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.2;text-wrap:balance}
+.head small{display:block;color:var(--muted);font-size:14.5px;font-weight:500;margin-top:8px}
+.head small b{color:var(--ink);font-weight:700;white-space:nowrap}
+.head small b.late{color:var(--late)}
+.head h1{font-family:var(--display);font-size:clamp(32px,3.6vw,46px);font-weight:800;letter-spacing:-.035em;line-height:1.02;text-wrap:balance;
+  display:flex;align-items:center;gap:14px}
+.head h1 .dot{width:.36em;height:.36em}
 .head .avatar{width:42px;height:42px;border-radius:13px}
 .icon-btn{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;color:var(--muted);background:var(--surface);border:1px solid var(--line)}
 .icon-btn svg{width:20px;height:20px}
@@ -147,7 +154,7 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
 /* client panel */
 .cpanel{padding:18px}
 .cpanel-top{display:flex;align-items:center;gap:10px;margin-bottom:4px}
-.cpanel-top h2{font-size:17px;font-weight:700;flex:1;min-width:0}
+.cpanel-top h2{font-family:var(--display);font-size:21px;font-weight:800;letter-spacing:-.02em;flex:1;min-width:0}
 .cpanel-top .dot{width:12px;height:12px}
 .health{font-size:13px;font-weight:600;color:var(--muted)}
 .facts{display:grid;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
@@ -160,7 +167,7 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
 /* at a glance */
 .glance{padding:8px}
 @media (max-width:1179px){.glance,.aside:has(.glance){display:none}}
-.glance h2{font-size:13px;font-weight:600;color:var(--muted);padding:8px 10px 6px}
+.glance h2{font-family:var(--display);font-size:17px;font-weight:700;letter-spacing:-.01em;padding:10px 10px 6px}
 .glance-row{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;align-items:center;width:100%;text-align:left;padding:10px;border-radius:10px;transition:background .15s}
 .glance-row:hover{background:var(--surface-2)}
 .glance-row b{font-size:14px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -169,10 +176,12 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
 .glance-row .n.late{color:var(--late);font-weight:600}
 
 /* ---------- task list ---------- */
-.group{display:flex;align-items:baseline;gap:8px;font-size:13.5px;font-weight:700;margin:22px 4px 8px}
+.group{display:flex;align-items:baseline;gap:8px;font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:-.015em;margin:30px 4px 10px}
 .group:first-child{margin-top:0}
-.group .n{font-weight:500;color:var(--muted)}
-.group.late{color:var(--late)}
+.group .n{font-family:"Plus Jakarta Sans",sans-serif;font-size:13px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.group.late,.group.late .n{color:var(--late)}
+.group.late+.list{border-color:color-mix(in oklch,var(--late) 40%,var(--line))}
+.group.late+.list .check{border-color:color-mix(in oklch,var(--late) 55%,var(--faint))}
 .list{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
 .task{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;cursor:pointer;transition:background .15s}
 .task+.task{border-top:1px solid var(--line)}
@@ -193,11 +202,12 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
   .task .meta .when{width:150px;justify-content:flex-end;white-space:nowrap}
   .task .meta .stat{width:96px;justify-content:flex-end}
 }
-.check{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--faint);flex:none;display:grid;place-items:center;color:transparent;background:var(--surface);
+.check{position:relative;width:22px;height:22px;border-radius:7px;border:1.5px solid var(--faint);flex:none;display:grid;place-items:center;color:transparent;background:var(--surface);
   transition:background .15s,border-color .15s,color .15s;margin-top:1px}
 @media (min-width:900px){.check{margin-top:0}}
 .check:hover{border-color:var(--accent-bright);color:var(--accent-bright)}
 .check svg{width:13px;height:13px}
+.check::before{content:"";position:absolute;inset:-11px}
 .check.done{background:var(--accent);border-color:var(--accent);color:oklch(0.99 0 0)}
 .task.is-done .title{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
 .pill{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
@@ -214,7 +224,7 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
   background:var(--surface-2);color:var(--muted);font-weight:600;position:relative;transition:background .15s,color .15s}
 .day:hover{color:var(--ink)}
 .day small{font-size:12px}
-.day b{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.day b{font-family:var(--display);font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
 .day.has::after{content:"";position:absolute;bottom:7px;width:5px;height:5px;border-radius:50%;background:var(--accent-bright)}
 .day.today{color:var(--accent-ink);box-shadow:inset 0 0 0 1.5px var(--accent-bright)}
 .day.on{color:oklch(0.99 0 0);background:var(--accent);box-shadow:none}
@@ -228,9 +238,9 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
 .ccard{padding:18px;text-align:left;display:flex;flex-direction:column;gap:12px;transition:border-color .15s,transform .15s}
 .ccard:hover{border-color:var(--faint)}
 .ccard .top{display:flex;align-items:center;gap:10px}
-.ccard .top b{font-size:16px;font-weight:700;flex:1;min-width:0}
+.ccard .top b{font-family:var(--display);font-size:20px;font-weight:800;letter-spacing:-.02em;flex:1;min-width:0}
 .ccard .row{display:flex;gap:16px;font-size:13px;color:var(--muted)}
-.ccard .row strong{color:var(--ink);font-weight:700}
+.ccard .row strong{font-family:var(--display);font-size:17px;color:var(--ink);font-weight:800;font-variant-numeric:tabular-nums}
 .ccard .row strong.late{color:var(--late)}
 .ccard .next{font-size:13.5px;border-top:1px solid var(--line);padding-top:12px}
 .ccard .next span{display:block;font-size:12px;font-weight:600;color:var(--muted)}
@@ -238,8 +248,8 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
 /* ---------- mobile bottom nav ---------- */
 .nav{position:fixed;left:0;right:0;bottom:0;height:calc(68px + env(safe-area-inset-bottom));padding:0 12px env(safe-area-inset-bottom);
   display:grid;grid-template-columns:repeat(5,1fr);align-items:center;justify-items:center;background:var(--side);z-index:var(--z-nav)}
-.nav button{width:48px;height:48px;display:grid;place-items:center;color:var(--side-muted);border-radius:12px}
-.nav button svg{width:24px;height:24px}
+.nav button{width:60px;height:54px;display:grid;place-items:center;align-content:center;gap:3px;color:var(--side-muted);border-radius:12px;font-size:11px;font-weight:600}
+.nav button svg{width:22px;height:22px}
 .nav button.on{color:var(--side-ink);background:var(--side-on)}
 .nav .fab{width:54px;height:54px;border-radius:16px;color:oklch(0.99 0 0);background:var(--accent)}
 .nav .fab svg{width:26px;height:26px}
@@ -258,7 +268,7 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
 @keyframes fade{from{opacity:0}}
 @media (prefers-reduced-motion:reduce){.scrim,.sheet{animation:none}}
 .grab{width:40px;height:5px;border-radius:5px;background:var(--faint);margin:0 auto 14px}
-.sheet h2{font-size:20px;font-weight:800;letter-spacing:-.01em;margin-bottom:18px}
+.sheet h2{font-family:var(--display);font-size:26px;font-weight:800;letter-spacing:-.025em;margin-bottom:20px}
 .form{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .form label{display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted)}
 .form label.wide{grid-column:1/-1}
@@ -273,10 +283,25 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
 .btn.danger{color:var(--b-fg);background:var(--b-bg)}
 .btn:disabled{opacity:.6;cursor:progress}
 
+/* ---------- phone ---------- */
+@media (max-width:899px){
+  /* 16px stops iOS zooming the page when a field is focused */
+  .search input,.form input,.form select,.form textarea{font-size:16px}
+  .chip{height:38px}
+  .tab{height:42px}
+  .task{padding:14px}
+  .task .title{font-size:15.5px}
+  .head .avatar{order:-1}
+  .actions{position:sticky;bottom:calc(-22px - env(safe-area-inset-bottom));background:var(--surface);margin:8px -18px calc(-22px - env(safe-area-inset-bottom));
+    padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+  .login .actions{position:static;margin:8px 0 0;padding:0;border:0}
+  .cpanel .facts{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+}
+
 /* ---------- login ---------- */
 .login{min-height:100dvh;display:grid;place-items:center;padding:16px;background:var(--side)}
 .login .card{width:min(400px,100%);padding:30px 26px}
-.login h1{font-size:26px;font-weight:800;letter-spacing:-.02em}
+.login h1{font-family:var(--display);font-size:36px;font-weight:800;letter-spacing:-.035em;line-height:1.05}
 .login p{color:var(--muted);margin:4px 0 22px}
 .login .form{grid-template-columns:1fr}
 
@@ -322,7 +347,7 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
     <section id="v-home">
       <header class="head">
         <div class="avatar mobile-only" id="avatarM"></div>
-        <div class="titles"><small id="greet"></small><h1 id="homeTitle">All work</h1></div>
+        <div class="titles"><h1 id="homeTitle">All work</h1><small id="greet"></small></div>
         <label class="search">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
           <input id="q" type="search" placeholder="Search tasks and notes" aria-label="Search tasks">
@@ -342,7 +367,7 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
     <!-- Schedule -->
     <section id="v-schedule" hidden>
       <header class="head">
-        <div class="titles"><small>Schedule</small><h1 id="dayTitle"></h1></div>
+        <div class="titles"><h1>Schedule</h1><small id="dayTitle"></small></div>
         <button class="btn" data-act="today">Jump to today</button>
       </header>
       <div class="panel card">
@@ -355,7 +380,7 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
     <!-- Clients -->
     <section id="v-clients" hidden>
       <header class="head">
-        <div class="titles"><small id="clientCount"></small><h1>Clients</h1></div>
+        <div class="titles"><h1>Clients</h1><small id="clientCount"></small></div>
         <button class="btn primary" data-act="newClient" style="flex:none">Add client</button>
       </header>
       <div class="cgrid" id="clientList"></div>
@@ -363,11 +388,11 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 6px;
   </div></main>
 
   <nav class="nav" aria-label="Views">
-    <button data-view="home" aria-label="Tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/></svg></button>
-    <button data-view="schedule" aria-label="Schedule"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></button>
+    <button data-view="home" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/></svg><span>Tasks</span></button>
+    <button data-view="schedule" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span>Schedule</span></button>
     <button class="fab" data-act="newTask" aria-label="New task"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-    <button data-view="clients" aria-label="Clients"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg></button>
-    <button data-act="account" aria-label="Account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg></button>
+    <button data-view="clients" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg><span>Clients</span></button>
+    <button data-act="account" ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg><span>Account</span></button>
   </nav>
 </div>
 

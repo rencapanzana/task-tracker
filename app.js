@@ -152,7 +152,7 @@ function clientPanel(c) {
   const st = clientStats(c.id);
   const due = c.next_action_due ? ` (${esc(fmtDay(c.next_action_due))})` : '';
   return `<div class="cpanel card">
-    <div class="cpanel-top"><i class="dot" style="--c:${colorOf(c.id)}"></i><h2>${esc(c.name)}</h2><button class="link-btn" data-client="${c.id}">Edit</button></div>
+    <div class="cpanel-top"><i class="dot" style="--c:${colorOf(c.id)}"></i><h2>Client details</h2><button class="link-btn" data-client="${c.id}">Edit</button></div>
     <div class="health">${c.health ? esc(c.health) + ' · ' : ''}${plural(st.open, 'open task')}${st.late ? `, <span style="color:var(--late)">${st.late} overdue</span>` : ''}</div>
     <dl class="facts">
       ${fact('Current focus', esc(c.current_focus))}
@@ -193,10 +193,15 @@ function renderHome() {
   const c = S.client === 'all' ? null : clientOf(S.client);
   if (!c) S.client = 'all';
   const date = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
-  $('#greet').textContent = c ? date : `${h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'} · ${date}`;
-  $('#homeTitle').textContent = c ? c.name : 'All work';
+  $('#homeTitle').innerHTML = c ? `<i class="dot" style="--c:${colorOf(c.id)}"></i>${esc(c.name)}` : 'All work';
 
   const scoped = S.tasks.filter(inClient);
+  const today = ymd(new Date());
+  const late = scoped.filter(isLate).length, due = scoped.filter(t => isOpen(t) && t.due_date === today).length;
+  const status = late || due
+    ? [late && `<b class="late">${late} overdue</b>`, due && `<b>${due} due today</b>`].filter(Boolean).join(' · ')
+    : 'Nothing overdue or due today';
+  $('#greet').innerHTML = `${c ? '' : (h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening') + ' · '}${date} · ${status}`;
   const allOpen = S.tasks.filter(isOpen).length;
   $('#tabs').innerHTML = [['all', 'All', allOpen], ...S.clients.map(x => [x.id, x.name, clientStats(x.id).open])].map(([id, name, n]) =>
     `<button class="tab ${S.client === id ? 'on' : ''}" data-cfilter="${id}" role="tab" aria-selected="${S.client === id}">${id === 'all' ? '' : `<i class="dot" style="--c:${colorOf(id)}"></i>`}${esc(name)}<span class="n">${n}</span></button>`
@@ -221,7 +226,6 @@ function renderHome() {
     $('#taskList').innerHTML = `<div class="list">${list.map(taskCard).join('')}</div>`;
     return;
   }
-  const today = ymd(new Date());
   const groups = [
     ['Overdue', t => isOpen(t) && t.due_date && t.due_date < today, 'late'],
     ['Today', t => t.due_date === today],
